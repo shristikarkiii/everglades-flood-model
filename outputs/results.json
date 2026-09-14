@@ -1,0 +1,72 @@
+{
+  "grid": {
+    "width": 4278,
+    "height": 3847,
+    "crs": "EPSG:32617",
+    "pixel_size": 30.0
+  },
+  "study_domain_pixels": 8161897,
+  "weights": {
+    "sar_water_frequency": 0.40689498393860873,
+    "elevation": 0.2758140814219503,
+    "twi": 0.10758303276657889,
+    "distance_to_channel": 0.10758303276657889,
+    "slope": 0.06144180711631262,
+    "landcover": 0.04068306198997054
+  },
+  "consistency_ratio": 0.012387194740610102,
+  "classes": [
+    {
+      "class": 1,
+      "label": "Very low",
+      "lower": 0.003848430933430791,
+      "upper": 0.37063578367233285,
+      "pixels": 1632380,
+      "share": 0.20000007351232196
+    },
+    {
+      "class": 2,
+      "label": "Low",
+      "lower": 0.37063578367233285,
+      "upper": 0.44256294369697574,
+      "pixels": 1632379,
+      "share": 0.19999995099178536
+    },
+    {
+      "class": 3,
+      "label": "Moderate",
+      "lower": 0.44256294369697574,
+      "upper": 0.471270352602005,
+      "pixels": 1632377,
+      "share": 0.1999997059507122
+    },
+    {
+      "class": 4,
+      "label": "High",
+      "lower": 0.471270352602005,
+      "upper": 0.500972330570221,
+      "pixels": 1632377,
+      "share": 0.1999997059507122
+    },
+    {
+      "class": 5,
+      "label": "Very high",
+      "lower": 0.500972330570221,
+      "upper": 1.0,
+      "pixels": 1632384,
+      "share": 0.2000005635944683
+    }
+  ],
+  "validation_fema_sfha": {
+    "Full model (terrain + Sentinel-1)": 0.7909067108863387,
+    "Terrain only (no SAR)": 0.8093818657276326,
+    "Sentinel-1 water frequency alone": 0.5250487964233307,
+    "Inverted elevation alone": 0.8180607593802667
+  },
+  "validation_gsw": {
+    "Full model (terrain + Sentinel-1)": 0.9455496140829504,
+    "Terrain only (no SAR)": 0.8173103483000145,
+    "Sentinel-1 water frequency alone": 0.9579710646619262,
+    "Inverted elevation alone": 0.8554048448668327
+  }
+}

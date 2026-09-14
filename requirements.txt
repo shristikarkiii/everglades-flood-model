@@ -1,0 +1,25 @@
+# Geospatial I/O and array work
+rasterio>=1.5,<2
+numpy>=2.0,<3
+scipy>=1.13,<2
+shapely>=2.0,<3
+
+# Hydrological routing.
+#
+# pysheds 0.5 predates NumPy 2.0 and calls the removed numpy.in1d.
+# everglades_flood.terrain restores the alias before importing it; see
+# _patch_numpy_for_pysheds() for why downgrading NumPy is not an option.
+pysheds>=0.5,<1
+
+# Sentinel-1 discovery via the Planetary Computer STAC API
+pystac-client>=0.8,<1
+planetary-computer>=1.0,<2
+
+# Modelling and figures
+scikit-learn>=1.4,<2
+matplotlib>=3.8,<4
+
+requests>=2.31,<3
+
+# Tests
+pytest>=8.0
