@@ -68,5 +68,15 @@
     "Terrain only (no SAR)": 0.8173103483000145,
     "Sentinel-1 water frequency alone": 0.9579710646619262,
     "Inverted elevation alone": 0.8554048448668327
+  },
+  "protected_land_only": {
+    "pixels": 5602621,
+    "share_of_domain": 0.6864361312082228,
+    "validation_gsw": {
+      "Full model (terrain + Sentinel-1)": 0.9461354903893961,
+      "Terrain only (no SAR)": 0.7930787071844686,
+      "Sentinel-1 water frequency alone": 0.9680275260228799,
+      "Inverted elevation alone": 0.861765824035311
+    }
   }
 }

@@ -116,6 +116,34 @@ The layer is nonetheless real and independently corroborated: it correlates
 **r = 0.707** with JRC Global Surface Water, built from Landsat by entirely
 different means.
 
+### Robustness: is this just telling a city apart from a swamp?
+
+The study domain reaches the developed edge of Miami-Dade, so it is fair to ask
+whether the model's skill comes from separating built-up land from wetland
+rather than from modelling flood exposure. Re-scoring over protected land only
+— Everglades National Park and Big Cypress, 93% herbaceous wetland and mangrove
+— answers it:
+
+![Susceptibility, parks only](outputs/figures/07-susceptibility-parks-only.png)
+
+| Model | Full domain | Parks only |
+| --- | ---: | ---: |
+| Full model | 0.946 | **0.946** |
+| Sentinel-1 alone | 0.958 | 0.968 |
+| Inverted elevation alone | 0.855 | 0.862 |
+| Terrain only (no SAR) | 0.817 | 0.793 |
+
+Scored against JRC surface water; the parks cover 68.6% of the study domain.
+The full model performs identically inside the parks, so its skill is not an
+artefact of the urban margin.
+
+**Only the JRC reference works here.** Inside the parks FEMA has determined 3.7
+million pixels and **99.9% of them are Special Flood Hazard Area** — about
+5,000 non-SFHA pixels remain, which is not enough of a negative class to
+support an AUC. That is also why the model itself is not clipped to the park
+boundary: the developed margin is the only place the regulatory reference has
+any contrast to test against.
+
 ---
 
 ## Study area
@@ -143,8 +171,13 @@ precise about what the model actually covers. Of the land domain:
 Miami-Dade and Homestead along the eastern edge, plus agricultural land in the
 north — included deliberately, because the developed margin is where FEMA has
 made detailed flood determinations and is therefore where the validation has
-the most to say. Everglades National Park and Big Cypress National Preserve are
-outlined on the map above.
+the most to say.
+
+Everglades National Park and Big Cypress are outlined on the map above. The
+outline traces `park ∩ study domain` rather than the park polygons themselves:
+Everglades NP is roughly a third open water and its boundary sweeps far out
+through Florida Bay, so drawn raw it encloses a large area the model does not
+cover. A park-only version of the map is in the robustness section above.
 
 Spot checks against known locations:
 
@@ -263,7 +296,7 @@ A full cold run takes roughly 15 minutes, most of it downloading. Tests need no
 data and no network:
 
 ```bash
-pytest          # 47 passed
+pytest          # 48 passed
 ```
 
 ---
@@ -284,11 +317,12 @@ everglades_flood/
   sensitivity.py   weight sweep against both references
   plotting.py      figures
 run.py             the pipeline
-tests/             47 tests, no data or network required
+tests/             48 tests, no data or network required
 outputs/
-  figures/         the six figures in this README
-  results.json     weights, class breaks, every AUC
+  figures/         the seven figures in this README
+  results.json     weights, class breaks, every AUC, park-only scores
   flood_susceptibility_classes.tif
+  flood_susceptibility_classes_park.tif
 ```
 
 ---

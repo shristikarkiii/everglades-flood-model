@@ -129,6 +129,32 @@ def reproject_file(src_path, grid: Grid, resampling=Resampling.bilinear,
     return dst
 
 
+def rasterize_geojson(path, grid: Grid):
+    """Burn every polygon in a WGS84 GeoJSON onto the analysis grid."""
+    import json
+
+    import rasterio.features
+    from rasterio.warp import transform_geom
+
+    try:
+        with open(path, encoding="utf-8") as fh:
+            collection = json.load(fh)
+    except (OSError, ValueError, TypeError):
+        return np.zeros(grid.shape, dtype=bool)
+
+    shapes = [
+        (transform_geom("EPSG:4326", grid.crs, feature["geometry"]), 1)
+        for feature in collection.get("features", [])
+        if feature.get("geometry")
+    ]
+    if not shapes:
+        return np.zeros(grid.shape, dtype=bool)
+
+    return rasterio.features.rasterize(
+        shapes, out_shape=grid.shape, transform=grid.transform,
+        fill=0, default_value=1, dtype="uint8").astype(bool)
+
+
 def reproject_array(array, src_transform, src_crs, grid: Grid,
                     resampling=Resampling.bilinear, src_nodata=np.nan):
     """Reproject an in-memory array onto the analysis grid."""

@@ -1,11 +1,9 @@
 """Tests for map rendering.
 
-These guard a specific failure: overlays whose geometry runs outside the
-analysis grid silently growing the axes, so the map ends up as a small panel
-surrounded by empty background.
+These guard two specific failures: an overlay silently resizing the axes, so
+the map ends up as a panel surrounded by empty background; and an outline that
+encloses area the model does not cover.
 """
-
-import json
 
 import numpy as np
 import pytest
@@ -15,105 +13,103 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 
 from everglades_flood import plotting  # noqa: E402
-from everglades_flood.raster import analysis_grid  # noqa: E402
 
 
-@pytest.fixture(scope="module")
-def grid():
-    return analysis_grid()
+class _Grid:
+    """A small stand-in for the analysis grid.
 
-
-def _write_geojson(tmp_path, ring):
-    path = tmp_path / "boundary.geojson"
-    path.write_text(json.dumps({
-        "type": "FeatureCollection",
-        "features": [{
-            "type": "Feature",
-            "properties": {"UNIT_NAME": "Test"},
-            "geometry": {"type": "Polygon", "coordinates": [ring]},
-        }],
-    }), encoding="utf-8")
-    return path
-
-
-def test_overlay_does_not_expand_the_axes(grid, tmp_path):
-    """A boundary running far outside the grid must not resize the frame.
-
-    Big Cypress continues north of the AOI and Everglades National Park extends
-    south into Florida Bay, so real boundaries genuinely do leave the frame.
-    Matplotlib's default is to grow the axes to fit plotted lines, which pads
-    the figure with background and reads as a broken map.
+    Large enough that the map legend fits without matplotlib complaining that
+    tight_layout cannot accommodate it.
     """
-    # A ring well outside the study area, in both directions.
-    ring = [[-83.0, 22.0], [-79.0, 22.0], [-79.0, 28.0], [-83.0, 28.0],
-            [-83.0, 22.0]]
-    path = _write_geojson(tmp_path, ring)
+    crs = "EPSG:32617"
+    width, height = 400, 320
+    shape = (320, 400)
+    bounds = (400000.0, 2700000.0, 400000.0 + 400 * 30, 2700000.0 + 320 * 30)
 
+
+def _axes_with_image(grid):
     fig, ax = plt.subplots()
-    ax.imshow(np.zeros(grid.shape), extent=plotting._extent_km(grid))
+    ax.imshow(np.zeros(grid.shape), extent=plotting._extent_km(grid),
+              origin="upper")
+    return fig, ax
+
+
+def _blob(shape, rows, cols):
+    mask = np.zeros(shape, dtype=bool)
+    mask[rows[0]:rows[1], cols[0]:cols[1]] = True
+    return mask
+
+
+def test_outline_does_not_expand_the_axes():
+    """Nothing drawn on a finished map may resize its frame."""
+    grid = _Grid()
+    fig, ax = _axes_with_image(grid)
     before = (ax.get_xlim(), ax.get_ylim())
 
-    plotting.overlay_boundaries(ax, path, grid)
+    plotting.outline_mask(ax, _blob(grid.shape, (60, 240), (60, 300)), grid)
 
     assert (ax.get_xlim(), ax.get_ylim()) == before
     plt.close(fig)
 
 
-def test_overlay_actually_draws_something(grid, tmp_path):
-    """The guard must not be achieved by drawing nothing at all."""
-    ring = [[-81.2, 25.2], [-80.6, 25.2], [-80.6, 25.7], [-81.2, 25.7],
-            [-81.2, 25.2]]
-    path = _write_geojson(tmp_path, ring)
+def test_outline_actually_draws_something():
+    """The guard must not be satisfied by drawing nothing at all."""
+    grid = _Grid()
+    fig, ax = _axes_with_image(grid)
+    assert not ax.collections
 
-    fig, ax = plt.subplots()
-    ax.imshow(np.zeros(grid.shape), extent=plotting._extent_km(grid))
-    assert not ax.lines
+    plotting.outline_mask(ax, _blob(grid.shape, (60, 240), (60, 300)), grid)
 
-    plotting.overlay_boundaries(ax, path, grid)
+    assert ax.collections, "no outline was drawn"
+    plt.close(fig)
 
-    assert ax.lines, "no boundary was drawn"
-    xs, ys = ax.lines[0].get_data()
+
+def test_outline_of_an_empty_mask_is_a_no_op():
+    """A park entirely outside the modelled area must draw nothing.
+
+    This is the case that matters: intersecting the park polygon with the study
+    domain can legitimately leave nothing behind, and contouring an all-False
+    array would otherwise raise.
+    """
+    grid = _Grid()
+    fig, ax = _axes_with_image(grid)
+
+    plotting.outline_mask(ax, np.zeros(grid.shape, dtype=bool), grid)
+    plotting.outline_mask(ax, None, grid)
+
+    assert not ax.collections
+    plt.close(fig)
+
+
+def test_outline_follows_the_mask_not_the_frame():
+    """The traced edge must sit where the mask is, not around the whole map."""
+    grid = _Grid()
+    fig, ax = _axes_with_image(grid)
+
+    # A blob confined to the left third of the grid.
+    plotting.outline_mask(ax, _blob(grid.shape, (60, 240), (20, 150)), grid)
+
+    xs = np.concatenate([
+        np.asarray(path.vertices)[:, 0]
+        for collection in ax.collections
+        for path in collection.get_paths()
+    ])
     width_km = (grid.bounds[2] - grid.bounds[0]) / 1000.0
-    assert 0 < float(np.mean(xs)) < width_km
+    assert xs.max() < width_km * 0.5, "outline spilled past the masked area"
     plt.close(fig)
 
 
-def test_missing_boundary_file_is_not_fatal(grid, tmp_path):
-    """Cartographic decoration must never break a pipeline run."""
-    fig, ax = plt.subplots()
-    ax.imshow(np.zeros(grid.shape), extent=plotting._extent_km(grid))
-    before = (ax.get_xlim(), ax.get_ylim())
-
-    plotting.overlay_boundaries(ax, None, grid)
-    plotting.overlay_boundaries(ax, tmp_path / "nope.geojson", grid)
-
-    assert (ax.get_xlim(), ax.get_ylim()) == before
-    plt.close(fig)
-
-
-def test_susceptibility_map_frame_matches_the_grid(grid, tmp_path):
-    """The rendered map must span exactly the analysis grid."""
+def test_susceptibility_map_renders_with_an_outline(tmp_path):
+    grid = _Grid()
     rng = np.random.default_rng(0)
-    small = (60, 66)
-    classes = rng.integers(1, 6, small).astype("uint8")
-    domain = np.ones(small, dtype=bool)
-
-    class _G:
-        crs = grid.crs
-        transform = grid.transform
-        width, height = small[1], small[0]
-        bounds = grid.bounds
-        shape = small
-
+    classes = rng.integers(1, 6, grid.shape).astype("uint8")
+    domain = np.ones(grid.shape, dtype=bool)
     summary = [{"label": l, "share": 0.2} for l in
                ["Very low", "Low", "Moderate", "High", "Very high"]]
 
-    ring = [[-83.0, 22.0], [-79.0, 22.0], [-79.0, 28.0], [-83.0, 28.0],
-            [-83.0, 22.0]]
-    path = _write_geojson(tmp_path, ring)
-
     out = plotting.susceptibility_map(
-        classes, summary, domain, _G, tmp_path / "map.png", boundaries=path)
+        classes, summary, domain, grid, tmp_path / "map.png",
+        outline=_blob(grid.shape, (60, 240), (60, 300)))
 
     assert out.exists()
     assert out.stat().st_size > 5000

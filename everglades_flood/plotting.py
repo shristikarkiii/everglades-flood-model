@@ -53,57 +53,34 @@ def _scale_bar(ax, grid, length_km=25):
             ha="center", va="bottom", fontsize=8, zorder=5)
 
 
-def _rings(geometry):
-    """Yield exterior rings of a (Multi)Polygon GeoJSON geometry."""
-    kind = geometry.get("type")
-    if kind == "Polygon":
-        yield geometry["coordinates"][0]
-    elif kind == "MultiPolygon":
-        for polygon in geometry["coordinates"]:
-            yield polygon[0]
+def outline_mask(ax, mask, grid, color="#111111", lw=1.1):
+    """Trace the edge of a boolean mask on a map drawn in km coordinates.
 
+    Outlining the *mask* rather than the source polygon matters here. The park
+    polygons run well outside the modelled area -- Everglades National Park is
+    roughly a third open water, and its boundary sweeps through Florida Bay,
+    while Big Cypress continues north of the AOI. Drawing those polygons
+    directly puts a large closed outline around sea that the model deliberately
+    does not cover, which reads as an unfinished map. Passing
+    `park & study_domain` instead traces the park exactly where there are
+    results to enclose.
 
-def overlay_boundaries(ax, geojson_path, grid, color="#111111", lw=1.1,
-                       label=None):
-    """Draw polygon outlines from a WGS84 GeoJSON onto a map in km coordinates.
-
-    These outlines run outside the analysis grid -- Big Cypress continues north
-    of the AOI, and Everglades National Park extends south into Florida Bay --
-    so the axis limits are captured before plotting and restored afterwards.
-    Without that, matplotlib grows the axes to fit the lines and pads the
-    figure with empty space, which reads as a broken map rather than as a
-    boundary leaving the frame.
+    Axis limits are captured and restored: nothing drawn on a finished map
+    should be able to resize its frame.
     """
-    import json
-
-    from rasterio.warp import transform as warp_transform
-
-    if geojson_path is None:
-        return
-    try:
-        with open(geojson_path, encoding="utf-8") as fh:
-            collection = json.load(fh)
-    except (OSError, ValueError):
+    if mask is None or not np.any(mask):
         return
 
     xlim, ylim = ax.get_xlim(), ax.get_ylim()
-
-    left, bottom, _, _ = grid.bounds
-    drawn = False
-    for feature in collection.get("features", []):
-        geometry = feature.get("geometry")
-        if not geometry:
-            continue
-        for ring in _rings(geometry):
-            lons = [c[0] for c in ring]
-            lats = [c[1] for c in ring]
-            xs, ys = warp_transform("EPSG:4326", grid.crs, lons, lats)
-            ax.plot([(x - left) / 1000.0 for x in xs],
-                    [(y - bottom) / 1000.0 for y in ys],
-                    color=color, lw=lw, zorder=4, clip_on=True,
-                    label=None if drawn else label)
-            drawn = True
-
+    ax.contour(
+        mask.astype("float32"),
+        levels=[0.5],
+        extent=_extent_km(grid),
+        origin="upper",
+        colors=[color],
+        linewidths=lw,
+        zorder=4,
+    )
     ax.set_xlim(xlim)
     ax.set_ylim(ylim)
 
@@ -125,7 +102,7 @@ def show_map(ax, array, domain, grid, cmap="viridis", vmin=None, vmax=None,
     return im
 
 
-def factor_panel(factors, domain, grid, path, labels=None):
+def factor_panel(factors, domain, grid, path, labels=None, outline=None):
     """Grid of the normalised conditioning factors."""
     labels = labels or {}
     names = list(factors)
@@ -139,6 +116,7 @@ def factor_panel(factors, domain, grid, path, labels=None):
         im = show_map(ax, factors[name], domain, grid, cmap="magma",
                       vmin=0, vmax=1, title=labels.get(name, name),
                       scale_bar=False)
+        outline_mask(ax, outline, grid, color="#00d0ff", lw=0.7)
         cbar = fig.colorbar(im, ax=ax, fraction=0.04, pad=0.02)
         cbar.set_label("normalised 0-1", fontsize=8)
         cbar.ax.tick_params(labelsize=8)
@@ -156,7 +134,8 @@ def factor_panel(factors, domain, grid, path, labels=None):
 
 def susceptibility_map(classes, summary, domain, grid, path,
                        title="Flood susceptibility, Everglades wetland",
-                       boundaries=None):
+                       outline=None, outline_lw=1.2,
+                       outside_label="Outside study area (sea)"):
     """The headline five-class map."""
     cmap = ListedColormap(CLASS_COLOURS)
     norm = BoundaryNorm(np.arange(0.5, len(CLASS_COLOURS) + 1.5), cmap.N)
@@ -177,7 +156,7 @@ def susceptibility_map(classes, summary, domain, grid, path,
     ax.set_ylim(extent[2], extent[3])
 
     _scale_bar(ax, grid)
-    overlay_boundaries(ax, boundaries, grid, color="#111111", lw=1.2)
+    outline_mask(ax, outline, grid, color="#111111", lw=outline_lw)
 
     handles = [
         plt.Rectangle((0, 0), 1, 1, facecolor=CLASS_COLOURS[i],
@@ -190,11 +169,11 @@ def susceptibility_map(classes, summary, domain, grid, path,
     ]
     handles.append(plt.Rectangle((0, 0), 1, 1, facecolor=OUTSIDE,
                                  edgecolor="#666666", linewidth=0.4))
-    labels.append("Outside study area (sea)")
+    labels.append(outside_label)
 
-    if boundaries is not None:
+    if outline is not None and np.any(outline):
         handles.append(plt.Line2D([0], [0], color="#111111", lw=1.2))
-        labels.append("National Park / Preserve")
+        labels.append("Park / Preserve (analysed extent)")
 
     ax.legend(handles, labels, loc="lower right", frameon=True,
               framealpha=0.95, fontsize=9, title="Susceptibility",
@@ -299,7 +278,8 @@ def sensitivity_curve(records, labels, path, ahp_weight=None,
     return path
 
 
-def normalisation_comparison(raw_accumulation, twi, domain, grid, path):
+def normalisation_comparison(raw_accumulation, twi, domain, grid, path,
+                             outline=None):
     """Why this pipeline does not normalise raw flow accumulation.
 
     Left: raw flow accumulation under plain min-max scaling. Right: the same
@@ -327,6 +307,9 @@ def normalisation_comparison(raw_accumulation, twi, domain, grid, path):
                    title="TWI, percentile-clipped normalisation\n"
                          "(adopted)")
     fig.colorbar(im1, ax=axes[1], fraction=0.04, pad=0.02)
+
+    for ax in axes:
+        outline_mask(ax, outline, grid, color="#00d0ff", lw=0.7)
 
     share = float(np.nanmean(naive[valid] < 0.01))
     axes[0].text(0.02, 0.97,
