@@ -65,7 +65,15 @@ def _rings(geometry):
 
 def overlay_boundaries(ax, geojson_path, grid, color="#111111", lw=1.1,
                        label=None):
-    """Draw polygon outlines from a WGS84 GeoJSON onto a map in km coordinates."""
+    """Draw polygon outlines from a WGS84 GeoJSON onto a map in km coordinates.
+
+    These outlines run outside the analysis grid -- Big Cypress continues north
+    of the AOI, and Everglades National Park extends south into Florida Bay --
+    so the axis limits are captured before plotting and restored afterwards.
+    Without that, matplotlib grows the axes to fit the lines and pads the
+    figure with empty space, which reads as a broken map rather than as a
+    boundary leaving the frame.
+    """
     import json
 
     from rasterio.warp import transform as warp_transform
@@ -75,8 +83,10 @@ def overlay_boundaries(ax, geojson_path, grid, color="#111111", lw=1.1,
     try:
         with open(geojson_path, encoding="utf-8") as fh:
             collection = json.load(fh)
-    except OSError:
+    except (OSError, ValueError):
         return
+
+    xlim, ylim = ax.get_xlim(), ax.get_ylim()
 
     left, bottom, _, _ = grid.bounds
     drawn = False
@@ -90,9 +100,12 @@ def overlay_boundaries(ax, geojson_path, grid, color="#111111", lw=1.1,
             xs, ys = warp_transform("EPSG:4326", grid.crs, lons, lats)
             ax.plot([(x - left) / 1000.0 for x in xs],
                     [(y - bottom) / 1000.0 for y in ys],
-                    color=color, lw=lw, zorder=4,
+                    color=color, lw=lw, zorder=4, clip_on=True,
                     label=None if drawn else label)
             drawn = True
+
+    ax.set_xlim(xlim)
+    ax.set_ylim(ylim)
 
 
 def show_map(ax, array, domain, grid, cmap="viridis", vmin=None, vmax=None,
@@ -157,8 +170,13 @@ def susceptibility_map(classes, summary, domain, grid, path,
     ax.set_xticks([])
     ax.set_yticks([])
     ax.set_title(title, fontsize=14, pad=12)
-    _scale_bar(ax, grid)
 
+    # Lock the frame to the grid before anything else is drawn onto it.
+    extent = _extent_km(grid)
+    ax.set_xlim(extent[0], extent[1])
+    ax.set_ylim(extent[2], extent[3])
+
+    _scale_bar(ax, grid)
     overlay_boundaries(ax, boundaries, grid, color="#111111", lw=1.2)
 
     handles = [

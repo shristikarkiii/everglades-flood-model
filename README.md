@@ -1,9 +1,9 @@
-# Flood Susceptibility of the Everglades Wetland
+﻿# Flood Susceptibility of the Everglades Wetland
 
 **A reproducible Sentinel-1 + DEM model, validated against independent flood data.**
 
-Six conditioning factors — a year of Sentinel-1 water observations plus five
-terrain derivatives — combined through AHP-weighted overlay and scored against
+Six conditioning factors â€” a year of Sentinel-1 water observations plus five
+terrain derivatives â€” combined through AHP-weighted overlay and scored against
 two independent references. Runs end to end with `python run.py`, from open
 data, with no credentials.
 
@@ -15,24 +15,24 @@ data, with no credentials.
 
 **1. A fixed dB threshold cannot detect water in this archive.** Measured over
 ESA WorldCover's permanent-water class, the median VV gamma0 of the *same
-water* moved from **−23.3 dB** (27 Aug 2023) to **−16.1 dB** (6 Jan 2023) — a
+water* moved from **âˆ’23.3 dB** (27 Aug 2023) to **âˆ’16.1 dB** (6 Jan 2023) â€” a
 7 dB swing, because wind roughens the surface and Bragg scattering lifts the
-return. A −18 dB cut would have labelled 100% of that water correctly in
+return. A âˆ’18 dB cut would have labelled 100% of that water correctly in
 August and **4.8%** of it in January. Deriving the threshold per scene by
-Otsu's method gave values between **−15.0 and −10.5 dB** (median −12.6): the
-plausible-looking fixed threshold of −18 dB sits outside the range that was
+Otsu's method gave values between **âˆ’15.0 and âˆ’10.5 dB** (median âˆ’12.6): the
+plausible-looking fixed threshold of âˆ’18 dB sits outside the range that was
 actually correct for *every* accepted scene.
 
 **2. Raw flow accumulation must not be min-max normalised.** It spans 1 to
 187,804 cells with nearly all mass at the bottom. Scale it linearly and
 **98.80% of pixels land below 0.01**, leaving a sparse scatter of channel cells
-near 1 — salt-and-pepper noise wearing the colours of a hazard map. Entering it
+near 1 â€” salt-and-pepper noise wearing the colours of a hazard map. Entering it
 through TWI (logarithmic) with percentile-clipped normalisation recovers the
 structure.
 
 ![Normalisation comparison](outputs/figures/05-normalisation-comparison.png)
 
-**3. FEMA Zone D is "not studied", not "not at risk" — and confusing the two
+**3. FEMA Zone D is "not studied", not "not at risk" â€” and confusing the two
 inverts the validation.** Zone D covers **22.8%** of the study domain, and it
 is the lowest, wettest ground in it: median elevation **0.93 m** against 3.99 m
 for Zone X, mean surface-water occurrence **12.2%** against 0.3%. It is the
@@ -83,15 +83,15 @@ exactly opposite directions, with no interior optimum:
 | **0.41** (AHP prior) | 0.791 | 0.944 |
 | 0.70 | 0.771 | **0.956** |
 
-So the weight is not really an empirical question — it is a choice about which
+So the weight is not really an empirical question â€” it is a choice about which
 reference you believe. Two things follow, and the second is a criticism of the
 model as built:
 
-* The AHP prior is *defensible*: moving from w=0 to w=0.41 costs **−0.018** AUC
+* The AHP prior is *defensible*: moving from w=0 to w=0.41 costs **âˆ’0.018** AUC
   against FEMA and buys **+0.127** against JRC. A small loss on one reference
   for a large gain on the other.
 * But the JRC curve is steeply concave, and most of that gain has arrived by
-  **w ≈ 0.15–0.20** (+0.108 for only −0.009). **The prior of 0.407 is higher
+  **w â‰ˆ 0.15â€“0.20** (+0.108 for only âˆ’0.009). **The prior of 0.407 is higher
   than the evidence supports.** It is left at its a priori value rather than
   tuned, because fitting weights to the validation data is how a validation
   stops meaning anything.
@@ -106,7 +106,7 @@ this environment that reasoning is only half right.
 
 The water-frequency panel is near-zero across most of the domain (median 0.000,
 p75 0.000, mean 0.044). SAR detects *open* water by its specular,
-low-backscatter signature — but water beneath emergent sawgrass raises
+low-backscatter signature â€” but water beneath emergent sawgrass raises
 backscatter through double-bounce with the stems and goes undetected. In a
 marsh, the layer behaves as an **open-water mask** rather than a graded
 flood-frequency surface. That is exactly why it saturates against JRC, which
@@ -122,9 +122,9 @@ different means.
 
 | | |
 | --- | --- |
-| Extent | −81.52 to −80.25 E, 24.85 to 25.89 N |
-| Analysis grid | 4278 × 3847 px at 30 m, EPSG:32617 (UTM 17N) |
-| Study domain | 8,161,897 px — the AOI is **50.4% open sea**, excluded |
+| Extent | âˆ’81.52 to âˆ’80.25 E, 24.85 to 25.89 N |
+| Analysis grid | 4278 Ã— 3847 px at 30 m, EPSG:32617 (UTM 17N) |
+| Study domain | 8,161,897 px â€” the AOI is **50.4% open sea**, excluded |
 
 The AOI is a rectangle over the southern tip of Florida, so it is worth being
 precise about what the model actually covers. Of the land domain:
@@ -141,7 +141,7 @@ precise about what the model actually covers. Of the land domain:
 
 **83.9% is wetland, mangrove or inland water.** The remainder is mostly western
 Miami-Dade and Homestead along the eastern edge, plus agricultural land in the
-north — included deliberately, because the developed margin is where FEMA has
+north â€” included deliberately, because the developed margin is where FEMA has
 made detailed flood determinations and is therefore where the validation has
 the most to say. Everglades National Park and Big Cypress National Preserve are
 outlined on the map above.
@@ -153,7 +153,7 @@ Spot checks against known locations:
 | Shark River Slough (park core) | Herbaceous wetland | 0.97 m |
 | Flamingo, south coast | Mangroves | 2.63 m |
 | Homestead | Built-up | 2.26 m |
-| Florida Bay, Key Largo | — | excluded as sea |
+| Florida Bay, Key Largo | â€” | excluded as sea |
 
 ---
 
@@ -164,7 +164,7 @@ All openly accessible, no credentials required:
 | Dataset | Role |
 | --- | --- |
 | **Copernicus DEM GLO-30** | Elevation, slope, hydrology |
-| **Sentinel-1 RTC** (Planetary Computer) | Water frequency — 119 scenes screened, 29 used |
+| **Sentinel-1 RTC** (Planetary Computer) | Water frequency â€” 119 scenes screened, 29 used |
 | **ESA WorldCover 10 m 2021** | Land cover; scene screening; sea connectivity |
 | **FEMA National Flood Hazard Layer** | Primary validation (3,980 polygons) |
 | **JRC Global Surface Water** | Secondary validation and SAR cross-check |
@@ -184,33 +184,33 @@ Conservation Area impoundments stay in.
 
 **Sentinel-1 water frequency.** For each scene: read VV onto the analysis grid
 from the overview nearest 60 m, convert to dB, derive an Otsu threshold, and
-screen it. A scene is used only if it covers ≥40% of the grid, ≥20% of its
-valid data lies over land, and Otsu separability η ≥ 0.70. **90 of 119 scenes
-failed on coverage** — they are corner slivers that see almost nothing but
+screen it. A scene is used only if it covers â‰¥40% of the grid, â‰¥20% of its
+valid data lies over land, and Otsu separability Î· â‰¥ 0.70. **90 of 119 scenes
+failed on coverage** â€” they are corner slivers that see almost nothing but
 ocean, where Otsu splits water against itself and water recall collapses to
-30–62%, against 96–99% on full-coverage scenes. Water frequency is the share of
+30â€“62%, against 96â€“99% on full-coverage scenes. Water frequency is the share of
 accepted looks in which a pixel falls below its own scene's threshold, masked
 where fewer than 8 looks exist.
 
 **Terrain.** Sink-filling, D8 routing and flow accumulation via pysheds, over
-land only. Slope by Horn's method. Everything in UTM 17N — in a geographic CRS
+land only. Slope by Horn's method. Everything in UTM 17N â€” in a geographic CRS
 the pixel is measured in degrees, slope comes out distorted by ~10% along one
 axis, and distances are not in metres.
 
 > **A standing caveat.** The Everglades falls on the order of 3 cm per
-> kilometre; measured median slope here is **0.29°**, and over half the raw AOI
+> kilometre; measured median slope here is **0.29Â°**, and over half the raw AOI
 > sits at exactly 0.00 m. Every one of these algorithms was designed for
 > hillslopes. On ground this flat, D8's steepest-descent direction is decided
-> as much by DEM noise as by topography. The derivatives are still informative —
-> a few centimetres genuinely does decide where water sits in a wetland — but
+> as much by DEM noise as by topography. The derivatives are still informative â€”
+> a few centimetres genuinely does decide where water sits in a wetland â€” but
 > this is why AHP ranks slope second-to-last, and why none of this should be
 > read as if it were terrain with relief.
 
-**TWI** = ln(a / tan β), with tan β floored at 0.001 rad. Without the floor,
-tan β reaches ~1e-6 and a handful of cells acquire astronomical TWI, which
+**TWI** = ln(a / tan Î²), with tan Î² floored at 0.001 rad. Without the floor,
+tan Î² reaches ~1e-6 and a handful of cells acquire astronomical TWI, which
 reduces everything else to noise once normalised.
 
-**Weights** from AHP: pairwise judgements on Saaty's 1–9 scale, weights as the
+**Weights** from AHP: pairwise judgements on Saaty's 1â€“9 scale, weights as the
 principal eigenvector, consistency ratio **0.0124** (acceptable below 0.10). The
 judgements and the reasoning behind each are declared in
 [`everglades_flood/ahp.py`](everglades_flood/ahp.py) for a reader to argue with.
@@ -226,13 +226,13 @@ compared against another region's map.
 
 ## Limitations
 
-* **Open water ≠ inundation.** The SAR layer under-detects water beneath
+* **Open water â‰  inundation.** The SAR layer under-detects water beneath
   emergent vegetation, which is most of the Everglades. VH polarisation or a
   double-bounce-aware classifier would likely do better.
 * **Neither reference is ground truth**, and the model is scored only where
   FEMA has made a determination (77.1% of the domain).
-* **No observed flood inventory.** A validated event inventory — rather than a
-  regulatory layer and a water-occurrence product — would settle the weight
+* **No observed flood inventory.** A validated event inventory â€” rather than a
+  regulatory layer and a water-occurrence product â€” would settle the weight
   question the sensitivity analysis leaves open.
 * **One year of Sentinel-1** (2023). Water frequency from a single year
   conflates the annual wet/dry cycle with longer-term regime.
@@ -263,7 +263,7 @@ A full cold run takes roughly 15 minutes, most of it downloading. Tests need no
 data and no network:
 
 ```bash
-pytest          # 43 passed
+pytest          # 47 passed
 ```
 
 ---
@@ -284,7 +284,7 @@ everglades_flood/
   sensitivity.py   weight sweep against both references
   plotting.py      figures
 run.py             the pipeline
-tests/             43 tests, no data or network required
+tests/             47 tests, no data or network required
 outputs/
   figures/         the six figures in this README
   results.json     weights, class breaks, every AUC
@@ -295,6 +295,6 @@ outputs/
 
 ## Data credits
 
-Copernicus DEM, Sentinel-1 and WorldCover © ESA. Global Surface Water ©
-European Commission JRC (Pekel et al. 2016). National Flood Hazard Layer ©
-FEMA. Park boundaries © US National Park Service.
+Copernicus DEM, Sentinel-1 and WorldCover Â© ESA. Global Surface Water Â©
+European Commission JRC (Pekel et al. 2016). National Flood Hazard Layer Â©
+FEMA. Park boundaries Â© US National Park Service.
